@@ -292,7 +292,7 @@ async function fetchGameState() {
                 notifiedEliminated.add(p.id);
                 // Nếu không phải là báo winner, thì báo người bị loại
                 // KHÔNG báo toast nếu chính mình là Mũ trắng đang được yêu cầu đoán từ (tránh đè popup)
-                if (!winner && !(isPromptingWhiteHat && p.id === currentPlayerId)) {
+                if (!winner && !isPromptingWhiteHat) {
                     Swal.fire({
                         title: 'Có người bị loại!',
                         text: `${p.name} đã bị loại. Thân phận thực sự: ${p.role.toUpperCase()}`,
