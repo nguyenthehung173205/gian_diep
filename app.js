@@ -1,0 +1,387 @@
+// =========================================================================
+// 🚨 CẤU HÌNH SUPABASE (HÃY ĐIỀN THÔNG TIN CỦA BẠN VÀO ĐÂY KHI TRIỂN KHAI)
+// =========================================================================
+// Để dự án hoạt động trên máy bạn, hãy thay thế URL của Edge Function vào biến bên dưới
+const ENGINE_URL = 'https://izrdxpbpmicatdtelkzo.supabase.co/functions/v1/undercover-engine';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cmR4cGJwbWljYXRkdGVsa3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzcyMTIsImV4cCI6MjEwMTI1MzIxMn0.6U_jsCLJRl3wGXQqoL7-A5SfMaKATXDHFnHA3zsjHyE';
+
+// =========================================================================
+// BIẾN TOÀN CỤC
+// =========================================================================
+let currentRoomCode = null;
+let currentPlayerId = null;
+let isGM = false;
+let pollingInterval = null;
+let currentGameState = null;
+
+// =========================================================================
+// UI ELEMENTS
+// =========================================================================
+const screenLobby = document.getElementById('screen-lobby');
+const screenWaiting = document.getElementById('screen-waiting');
+const screenPlaying = document.getElementById('screen-playing');
+
+// Lobby
+const btnShowJoin = document.getElementById('btn-show-join');
+const joinForm = document.getElementById('join-form');
+const btnCreateRoom = document.getElementById('btn-create-room');
+const btnJoinRoom = document.getElementById('btn-join-room');
+
+// Waiting
+const displayRoomCode = document.getElementById('display-room-code');
+const gmSettings = document.getElementById('gm-settings');
+const btnStartGame = document.getElementById('btn-start-game');
+const waitingPlayerList = document.getElementById('waiting-player-list');
+
+// Playing
+const keywordCard = document.getElementById('keyword-card');
+const displayKeyword = document.getElementById('display-keyword');
+const playingPlayerList = document.getElementById('playing-player-list');
+const btnGmMenu = document.getElementById('btn-gm-menu');
+const gmMenuContent = document.getElementById('gm-menu-content');
+const btnCancelRoom = document.getElementById('btn-cancel-room');
+const btnResetRoom = document.getElementById('btn-reset-room');
+
+// =========================================================================
+// HELPER: GỌI EDGE FUNCTION
+// =========================================================================
+async function callEngine(action, payload = {}) {
+    try {
+        const response = await fetch(ENGINE_URL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+                action: action,
+                roomCode: currentRoomCode,
+                requesterId: currentPlayerId,
+                payload: payload
+            })
+        });
+        const data = await response.json();
+        return data;
+    } catch (err) {
+        console.error(err);
+        return { status: 'error', message: 'Không thể kết nối đến máy chủ!' };
+    }
+}
+
+// =========================================================================
+// ĐIỀU HƯỚNG MÀN HÌNH
+// =========================================================================
+function switchScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+}
+
+// =========================================================================
+// SỰ KIỆN LOBBY
+// =========================================================================
+btnShowJoin.addEventListener('click', () => {
+    joinForm.style.display = 'flex';
+});
+
+btnCreateRoom.addEventListener('click', async () => {
+    Swal.showLoading();
+    const res = await callEngine('create_room');
+    Swal.close();
+    
+    if (res.status === 'success') {
+        currentRoomCode = res.roomCode;
+        joinForm.style.display = 'flex';
+        document.getElementById('input-room-code').value = currentRoomCode;
+        Swal.fire({
+            icon: 'success',
+            title: 'Tạo phòng thành công!',
+            text: `Mã phòng của bạn là: ${currentRoomCode}`,
+            confirmButtonColor: '#66fcf1'
+        });
+    } else {
+        Swal.fire('Lỗi', res.message, 'error');
+    }
+});
+
+btnJoinRoom.addEventListener('click', async () => {
+    const code = document.getElementById('input-room-code').value.trim();
+    const name = document.getElementById('input-player-name').value.trim();
+    
+    if (!code || !name) {
+        Swal.fire('Lỗi', 'Vui lòng nhập mã phòng và tên!', 'warning');
+        return;
+    }
+
+    Swal.showLoading();
+    currentRoomCode = code;
+    const res = await callEngine('join_room', { playerName: name });
+    Swal.close();
+
+    if (res.status === 'success') {
+        currentPlayerId = res.playerId;
+        isGM = res.isGM;
+        
+        displayRoomCode.innerText = currentRoomCode;
+        if (isGM) gmSettings.style.display = 'flex';
+        
+        switchScreen('screen-waiting');
+        startPolling();
+    } else {
+        Swal.fire('Lỗi', res.message, 'error');
+    }
+});
+
+// =========================================================================
+// SỰ KIỆN WAITING ROOM
+// =========================================================================
+btnStartGame.addEventListener('click', async () => {
+    const spies = parseInt(document.getElementById('input-spies').value);
+    const whiteHats = parseInt(document.getElementById('input-whitehats').value);
+
+    Swal.showLoading();
+    const res = await callEngine('start_game', { spies, whiteHats });
+    Swal.close();
+
+    if (res.status === 'error') {
+        Swal.fire('Lỗi', res.message, 'error');
+    }
+});
+
+// =========================================================================
+// SỰ KIỆN PLAYING
+// =========================================================================
+const flipCard = () => keywordCard.classList.add('is-flipped');
+const unflipCard = () => keywordCard.classList.remove('is-flipped');
+
+// Hỗ trợ chuột và cảm ứng
+keywordCard.addEventListener('mousedown', flipCard);
+keywordCard.addEventListener('touchstart', flipCard);
+keywordCard.addEventListener('mouseup', unflipCard);
+keywordCard.addEventListener('mouseleave', unflipCard);
+keywordCard.addEventListener('touchend', unflipCard);
+
+btnGmMenu.addEventListener('click', () => {
+    gmMenuContent.style.display = gmMenuContent.style.display === 'none' ? 'flex' : 'none';
+});
+
+btnResetRoom.addEventListener('click', async () => {
+    const confirm = await Swal.fire({
+        title: 'Bắt đầu ván mới?',
+        text: "Hệ thống sẽ dọn dẹp kết quả cũ và đưa mọi người về lại phòng chờ để chia bài lại.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#007bff',
+        cancelButtonColor: '#1f2833',
+        confirmButtonText: 'Đồng ý'
+    });
+
+    if (confirm.isConfirmed) {
+        Swal.showLoading();
+        await callEngine('reset_room');
+        Swal.close();
+    }
+});
+
+btnCancelRoom.addEventListener('click', async () => {
+    const confirm = await Swal.fire({
+        title: 'Bạn có chắc chắn muốn hủy phòng?',
+        text: "Mọi dữ liệu sẽ bị xóa!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4c4c',
+        cancelButtonColor: '#1f2833',
+        confirmButtonText: 'Hủy phòng ngay'
+    });
+
+    if (confirm.isConfirmed) {
+        await callEngine('cancel_room');
+    }
+});
+
+async function eliminatePlayer(targetId, targetName) {
+    const confirm = await Swal.fire({
+        title: `Loại bỏ ${targetName}?`,
+        text: "Thao tác này không thể hoàn tác!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4c4c',
+        cancelButtonColor: '#1f2833',
+        confirmButtonText: 'Đồng ý Loại bỏ'
+    });
+
+    if (confirm.isConfirmed) {
+        Swal.showLoading();
+        await callEngine('eliminate_player', { targetId });
+        Swal.close();
+    }
+}
+
+// =========================================================================
+// POLLING LOGIC
+// =========================================================================
+function startPolling() {
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(fetchGameState, 2000);
+}
+
+async function fetchGameState() {
+    const res = await callEngine('get_state');
+    if (res.status !== 'success') {
+        if (res.message === 'Lỗi đồng bộ') {
+            clearInterval(pollingInterval);
+            Swal.fire('Phòng đã đóng', 'Phòng này không còn tồn tại.', 'info').then(() => location.reload());
+        }
+        return;
+    }
+
+    const { roomStatus, players, winner, waitingForWhiteHat } = res;
+
+    // Render danh sách chờ nếu phòng đang waiting
+    if (roomStatus === 'waiting') {
+        switchScreen('screen-waiting');
+        renderWaitingPlayers(players);
+    }
+
+    // Nếu game bắt đầu
+    if (roomStatus === 'playing') {
+        switchScreen('screen-playing');
+        
+        // Quản phòng mới được thấy nút Menu (và danh sách nằm trong menu đó)
+        if (isGM) {
+            btnGmMenu.style.display = 'block';
+            renderPlayingPlayers(players, winner);
+        } else {
+            btnGmMenu.style.display = 'none';
+            gmMenuContent.style.display = 'none'; // Giấu luôn cả menu
+        }
+
+        // Hiện từ khóa cá nhân lên thẻ
+        const myData = players.find(p => p.id === currentPlayerId);
+        if (myData) {
+            displayKeyword.innerText = myData.keyword;
+        }
+
+        // Xử lý Mũ trắng đoán chữ (Chỉ hiển thị cho người bị loại và là Mũ trắng)
+        if (waitingForWhiteHat === currentPlayerId) {
+            // Mũ trắng hiện form đoán
+            clearInterval(pollingInterval); // Tạm dừng poll tránh popup spam
+            promptWhiteHatGuess();
+        }
+
+        // Xử lý game kết thúc
+        if (winner && currentGameState?.winner !== winner) {
+            clearInterval(pollingInterval);
+            
+            let title = '';
+            let text = '';
+            let icon = 'success';
+
+            if (winner === 'villager') {
+                title = 'DÂN THẮNG!';
+                text = 'Toàn bộ Gián điệp đã bị tiêu diệt!';
+            } else if (winner === 'spy') {
+                title = 'GIÁN ĐIỆP THẮNG!';
+                text = 'Gián điệp đã vượt mặt Dân!';
+                icon = 'error';
+            } else if (winner === 'white_hat') {
+                title = 'MŨ TRẮNG THẮNG!';
+                text = 'Mũ trắng đã cướp màn thành công!';
+                icon = 'info';
+            }
+
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: icon,
+                confirmButtonColor: '#66fcf1',
+                confirmButtonText: 'Quay lại sảnh',
+                allowOutsideClick: false
+            }).then(() => {
+                location.reload();
+            });
+        }
+    }
+
+    currentGameState = res;
+}
+
+function renderWaitingPlayers(players) {
+    waitingPlayerList.innerHTML = '';
+    players.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'player-item';
+        
+        let gmBadge = p.is_gm ? '<span class="gm-badge">GM</span>' : '';
+        
+        item.innerHTML = `
+            <div class="player-info">
+                <span class="player-name">${p.name} ${gmBadge}</span>
+            </div>
+        `;
+        waitingPlayerList.appendChild(item);
+    });
+}
+
+function renderPlayingPlayers(players, winner) {
+    playingPlayerList.innerHTML = '';
+    players.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'player-item' + (p.status === 'Eliminated' ? ' eliminated' : '');
+        
+        let gmBadge = p.is_gm ? '<span class="gm-badge">GM</span>' : '';
+        
+        // Khi game kết thúc, hiện toàn bộ role và keyword. Còn không thì ẩn.
+        let roleDisplay = '';
+        if (winner || p.status === 'Eliminated') {
+            roleDisplay = `<span class="player-role">Thân phận: ${p.role} - Từ khóa: ${p.keyword}</span>`;
+        }
+
+        item.innerHTML = `
+            <div class="player-info">
+                <span class="player-name">${p.name} ${gmBadge} ${p.status === 'Eliminated' ? '(Đã loại)' : ''}</span>
+                ${roleDisplay}
+            </div>
+        `;
+        
+        // Nút loại bỏ cho GM
+        if (isGM && !winner && p.status === 'Alive') {
+            const btn = document.createElement('button');
+            btn.className = 'btn-danger';
+            btn.innerHTML = '<i class="fa-solid fa-skull"></i>';
+            btn.style.padding = '8px 12px';
+            btn.onclick = () => eliminatePlayer(p.id, p.name);
+            item.appendChild(btn);
+        }
+
+        playingPlayerList.appendChild(item);
+    });
+}
+
+async function promptWhiteHatGuess() {
+    const { value: guess } = await Swal.fire({
+        title: 'BẠN LÀ MŨ TRẮNG',
+        text: 'Bạn đã bị loại! Trận đấu phụ thuộc vào bạn. Hãy nhập từ khóa của phe Dân mà bạn nghe lỏm được:',
+        input: 'text',
+        inputPlaceholder: 'Nhập từ khóa...',
+        showCancelButton: false,
+        confirmButtonColor: '#66fcf1',
+        confirmButtonText: 'Đoán',
+        allowOutsideClick: false,
+        inputValidator: (value) => {
+            if (!value) return 'Vui lòng không để trống!'
+        }
+    });
+
+    if (guess) {
+        Swal.showLoading();
+        const res = await callEngine('submit_whitehat_guess', { guessWord: guess });
+        Swal.close();
+        
+        if (res.status === 'success') {
+            await Swal.fire('Kết quả', res.message, 'info');
+        }
+        
+        // Resume polling
+        startPolling();
+    }
+}

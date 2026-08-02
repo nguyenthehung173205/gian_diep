@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Truy Tìm Gián Điệp - Undercover</title>
+    
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- =======================
+             SCREEN 1: LOBBY
+        ======================== -->
+        <div id="screen-lobby" class="screen active">
+            <h1><i class="fa-solid fa-user-secret"></i> UNDERCOVER</h1>
+            
+            <div style="display: flex; gap: 10px;">
+                <button id="btn-create-room" style="flex:1;">Tạo Phòng</button>
+                <button id="btn-show-join" style="flex:1; background: var(--panel-bg); color: var(--accent);">Vào Phòng</button>
+            </div>
+
+            <div id="join-form" style="display: none; flex-direction: column; gap: 10px; margin-top: 20px;">
+                <input type="number" id="input-room-code" placeholder="Nhập mã phòng (4 số)">
+                <input type="text" id="input-player-name" placeholder="Tên của bạn">
+                <button id="btn-join-room">Vào Chơi</button>
+            </div>
+        </div>
+
+        <!-- =======================
+             SCREEN 2: WAITING ROOM
+        ======================== -->
+        <div id="screen-waiting" class="screen">
+            <h2>Phòng: <span id="display-room-code" style="color:white;">----</span></h2>
+            
+            <div id="gm-settings" style="display: none; flex-direction: column; gap: 10px;">
+                <div class="settings-group">
+                    <label>Gián Điệp (Spy):</label>
+                    <input type="number" id="input-spies" value="1" min="1">
+                </div>
+                <div class="settings-group">
+                    <label>Mũ Trắng (White Hat):</label>
+                    <input type="number" id="input-whitehats" value="0" min="0">
+                </div>
+                <button id="btn-start-game" style="margin-top: 10px;">Bắt Đầu Trò Chơi</button>
+            </div>
+
+            <h3 style="text-align: left; font-size: 14px; margin-top: 20px; color: #888;">DANH SÁCH NGƯỜI CHƠI</h3>
+            <div class="player-list" id="waiting-player-list">
+                <!-- Chứa danh sách người chơi chờ -->
+            </div>
+        </div>
+
+        <!-- =======================
+             SCREEN 3: PLAYING
+        ======================== -->
+        <div id="screen-playing" class="screen">
+            
+            <!-- THẺ BÀI -->
+            <div class="scene">
+                <div class="card" id="keyword-card">
+                    <div class="card__face card__face--front">
+                        <i class="fa-solid fa-fingerprint"></i>
+                        <p>CHẠM VÀ GIỮ ĐỂ XEM</p>
+                    </div>
+                    <div class="card__face card__face--back">
+                        <h3 id="display-keyword">???</h3>
+                        <p>Buông tay để úp bài lại</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BẢNG ĐIỀU KHIỂN GM (Ẩn với người thường) -->
+            <button id="btn-gm-menu" style="display: none; margin-top: 10px;"><i class="fa-solid fa-bars"></i> Menu Quản Phòng</button>
+            
+            <div id="gm-menu-content" class="gm-menu-container" style="display: none;">
+                <div class="gm-controls">
+                    <button id="btn-reset-room" class="btn-primary">Bắt đầu ván mới</button>
+                    <button id="btn-cancel-room" class="btn-danger">Hủy Phòng</button>
+                </div>
+
+                <h3 style="text-align: left; font-size: 14px; margin-top: 10px; color: #888;">DANH SÁCH NGƯỜI CHƠI</h3>
+                <div class="player-list" id="playing-player-list">
+                    <!-- Chứa danh sách người chơi trong game. GM có nút Loại bỏ -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>
