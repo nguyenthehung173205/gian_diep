@@ -1,3 +1,7 @@
+// =========================================================================
+// 🚨 CẤU HÌNH SUPABASE (HÃY ĐIỀN THÔNG TIN CỦA BẠN VÀO ĐÂY KHI TRIỂN KHAI)
+// =========================================================================
+// Để dự án hoạt động trên máy bạn, hãy thay thế URL của Edge Function vào biến bên dưới
 const ENGINE_URL = 'https://izrdxpbpmicatdtelkzo.supabase.co/functions/v1/undercover-engine';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cmR4cGJwbWljYXRkdGVsa3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzcyMTIsImV4cCI6MjEwMTI1MzIxMn0.6U_jsCLJRl3wGXQqoL7-A5SfMaKATXDHFnHA3zsjHyE';
 
@@ -186,9 +190,9 @@ btnResetRoom.addEventListener('click', async () => {
     });
 
     if (confirm.isConfirmed) {
-        Swal.showLoading();
         await callEngine('reset_room');
-        Swal.close();
+        gmMenuContent.style.display = 'none'; // Ẩn menu
+        fetchGameState(); // Lấy dữ liệu ngay lập tức
     }
 });
 
@@ -220,9 +224,7 @@ async function eliminatePlayer(targetId, targetName) {
     });
 
     if (confirm.isConfirmed) {
-        Swal.showLoading();
         await callEngine('eliminate_player', { targetId });
-        Swal.close();
     }
 }
 
@@ -276,7 +278,9 @@ async function fetchGameState() {
         }
 
         // Xử lý Mũ trắng đoán chữ (Chỉ hiển thị cho người bị loại và là Mũ trắng)
+        let isPromptingWhiteHat = false;
         if (waitingForWhiteHat === currentPlayerId) {
+            isPromptingWhiteHat = true;
             // Mũ trắng hiện form đoán
             clearInterval(pollingInterval); // Tạm dừng poll tránh popup spam
             promptWhiteHatGuess();
@@ -286,8 +290,9 @@ async function fetchGameState() {
         players.forEach(p => {
             if (p.status === 'Eliminated' && !notifiedEliminated.has(p.id)) {
                 notifiedEliminated.add(p.id);
-                // Nếu không phải là báo winner, thì báo người bị loại (tránh đè popup nếu game kết thúc luôn)
-                if (!winner) {
+                // Nếu không phải là báo winner, thì báo người bị loại
+                // KHÔNG báo toast nếu chính mình là Mũ trắng đang được yêu cầu đoán từ (tránh đè popup)
+                if (!winner && !(isPromptingWhiteHat && p.id === currentPlayerId)) {
                     Swal.fire({
                         title: 'Có người bị loại!',
                         text: `${p.name} đã bị loại. Thân phận thực sự: ${p.role.toUpperCase()}`,
@@ -336,9 +341,8 @@ async function fetchGameState() {
                 allowOutsideClick: false
             }).then(async (result) => {
                 if (result.isDenied) {
-                    Swal.showLoading();
                     await callEngine('reset_room');
-                    Swal.close();
+                    fetchGameState(); // Lấy dữ liệu ngay lập tức
                 }
             });
         }
@@ -415,15 +419,16 @@ async function promptWhiteHatGuess() {
     });
 
     if (guess) {
-        Swal.showLoading();
         const res = await callEngine('submit_whitehat_guess', { guessWord: guess });
-        Swal.close();
         
         if (res.status === 'success') {
             await Swal.fire('Kết quả', res.message, 'info');
         }
         
         // Resume polling
+        startPolling();
+    } else {
+        // Nếu lỡ bị tắt popup mà chưa nhập, bật lại polling để hiện lại popup
         startPolling();
     }
 }
