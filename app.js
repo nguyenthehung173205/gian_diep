@@ -1,7 +1,3 @@
-// =========================================================================
-// 🚨 CẤU HÌNH SUPABASE (HÃY ĐIỀN THÔNG TIN CỦA BẠN VÀO ĐÂY KHI TRIỂN KHAI)
-// =========================================================================
-// Để dự án hoạt động trên máy bạn, hãy thay thế URL của Edge Function vào biến bên dưới
 const ENGINE_URL = 'https://izrdxpbpmicatdtelkzo.supabase.co/functions/v1/undercover-engine';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cmR4cGJwbWljYXRkdGVsa3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzcyMTIsImV4cCI6MjEwMTI1MzIxMn0.6U_jsCLJRl3wGXQqoL7-A5SfMaKATXDHFnHA3zsjHyE';
 
@@ -46,6 +42,8 @@ const btnCancelRoom = document.getElementById('btn-cancel-room');
 const btnResetRoom = document.getElementById('btn-reset-room');
 const displayPlayingRoomCode = document.getElementById('display-playing-room-code');
 const displayPlayingName = document.getElementById('display-playing-name');
+const btnLeaveRoomWaiting = document.getElementById('btn-leave-room-waiting');
+const btnLeaveRoomPlaying = document.getElementById('btn-leave-room-playing');
 
 // =========================================================================
 // HELPER: GỌI EDGE FUNCTION
@@ -227,6 +225,30 @@ async function eliminatePlayer(targetId, targetName) {
         await callEngine('eliminate_player', { targetId });
     }
 }
+
+async function handleLeaveRoom() {
+    const confirm = await Swal.fire({
+        title: 'Bạn muốn thoát phòng?',
+        text: isGM ? "Bạn là Quản Phòng. Nếu bạn thoát, phòng sẽ bị hủy!" : "Bạn sẽ rời khỏi phòng này.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4c4c',
+        cancelButtonColor: '#1f2833',
+        confirmButtonText: 'Đồng ý Thoát'
+    });
+
+    if (confirm.isConfirmed) {
+        Swal.showLoading();
+        await callEngine('leave_room');
+        Swal.close();
+        clearInterval(pollingInterval);
+        sessionStorage.clear();
+        location.reload();
+    }
+}
+
+btnLeaveRoomWaiting.addEventListener('click', handleLeaveRoom);
+btnLeaveRoomPlaying.addEventListener('click', handleLeaveRoom);
 
 // =========================================================================
 // POLLING LOGIC
