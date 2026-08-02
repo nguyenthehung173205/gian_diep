@@ -123,6 +123,12 @@ btnJoinRoom.addEventListener('click', async () => {
         currentName = name;
         isGM = res.isGM;
         
+        // Lưu vào sessionStorage để chống văng khi load lại/chuyển tab
+        sessionStorage.setItem('uc_roomCode', currentRoomCode);
+        sessionStorage.setItem('uc_playerId', currentPlayerId);
+        sessionStorage.setItem('uc_playerName', currentName);
+        sessionStorage.setItem('uc_isGM', isGM);
+
         displayRoomCode.innerText = currentRoomCode;
         displayPlayingRoomCode.innerText = currentRoomCode;
         displayPlayingName.innerText = currentName;
@@ -231,9 +237,11 @@ function startPolling() {
 async function fetchGameState() {
     const res = await callEngine('get_state');
     if (res.status !== 'success') {
-        if (res.message === 'Lỗi đồng bộ') {
+        // Lỗi đồng bộ = Phòng đã bị xóa hoặc không còn tồn tại
+        if (res.message === 'Lỗi đồng bộ' || res.message === 'Phòng không tồn tại!') {
             clearInterval(pollingInterval);
-            Swal.fire('Phòng đã đóng', 'Phòng này không còn tồn tại.', 'info').then(() => location.reload());
+            sessionStorage.clear(); // Xóa bộ nhớ tạm để không tự reconnect vào phòng cũ
+            Swal.fire('Phòng đã đóng', 'Phòng này không còn tồn tại hoặc đã bị hủy.', 'info').then(() => location.reload());
         }
         return;
     }
@@ -288,7 +296,7 @@ async function fetchGameState() {
                         toast: true,
                         position: 'top-end',
                         showConfirmButton: false,
-                        timer: 10000,
+                        timer: 4000,
                         timerProgressBar: true
                     });
                 }
@@ -419,3 +427,31 @@ async function promptWhiteHatGuess() {
         startPolling();
     }
 }
+
+// =========================================================================
+// KHÔI PHỤC TRẠNG THÁI (CHỐNG VĂNG KHI CHUYỂN TAB / TẮT MÀN HÌNH)
+// =========================================================================
+window.addEventListener('DOMContentLoaded', () => {
+    const savedRoom = sessionStorage.getItem('uc_roomCode');
+    const savedPlayer = sessionStorage.getItem('uc_playerId');
+    const savedName = sessionStorage.getItem('uc_playerName');
+    const savedGM = sessionStorage.getItem('uc_isGM');
+
+    if (savedRoom && savedPlayer) {
+        // Khôi phục biến toàn cục
+        currentRoomCode = savedRoom;
+        currentPlayerId = savedPlayer;
+        currentName = savedName;
+        isGM = (savedGM === 'true');
+        
+        // Khôi phục giao diện
+        displayRoomCode.innerText = currentRoomCode;
+        displayPlayingRoomCode.innerText = currentRoomCode;
+        displayPlayingName.innerText = currentName;
+        
+        if (isGM) gmSettings.style.display = 'flex';
+        
+        // Bắt đầu lấy dữ liệu luôn, hàm fetchGameState sẽ tự điều hướng đúng màn hình
+        startPolling();
+    }
+});
