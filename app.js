@@ -1,7 +1,3 @@
-// =========================================================================
-// 🚨 CẤU HÌNH SUPABASE (HÃY ĐIỀN THÔNG TIN CỦA BẠN VÀO ĐÂY KHI TRIỂN KHAI)
-// =========================================================================
-// Để dự án hoạt động trên máy bạn, hãy thay thế URL của Edge Function vào biến bên dưới
 const ENGINE_URL = 'https://izrdxpbpmicatdtelkzo.supabase.co/functions/v1/undercover-engine';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cmR4cGJwbWljYXRkdGVsa3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzcyMTIsImV4cCI6MjEwMTI1MzIxMn0.6U_jsCLJRl3wGXQqoL7-A5SfMaKATXDHFnHA3zsjHyE';
 
@@ -10,9 +6,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // =========================================================================
 let currentRoomCode = null;
 let currentPlayerId = null;
+let currentName = null;
 let isGM = false;
 let pollingInterval = null;
 let currentGameState = null;
+let notifiedEliminated = new Set();
+let isShowingWinner = false;
 
 // =========================================================================
 // UI ELEMENTS
@@ -41,6 +40,8 @@ const btnGmMenu = document.getElementById('btn-gm-menu');
 const gmMenuContent = document.getElementById('gm-menu-content');
 const btnCancelRoom = document.getElementById('btn-cancel-room');
 const btnResetRoom = document.getElementById('btn-reset-room');
+const displayPlayingRoomCode = document.getElementById('display-playing-room-code');
+const displayPlayingName = document.getElementById('display-playing-name');
 
 // =========================================================================
 // HELPER: GỌI EDGE FUNCTION
@@ -119,9 +120,12 @@ btnJoinRoom.addEventListener('click', async () => {
 
     if (res.status === 'success') {
         currentPlayerId = res.playerId;
+        currentName = name;
         isGM = res.isGM;
         
         displayRoomCode.innerText = currentRoomCode;
+        displayPlayingRoomCode.innerText = currentRoomCode;
+        displayPlayingName.innerText = currentName;
         if (isGM) gmSettings.style.display = 'flex';
         
         switchScreen('screen-waiting');
@@ -240,6 +244,8 @@ async function fetchGameState() {
     if (roomStatus === 'waiting') {
         switchScreen('screen-waiting');
         renderWaitingPlayers(players);
+        isShowingWinner = false; // Reset cờ winner nếu có
+        notifiedEliminated.clear(); // Xóa lịch sử loại để ván mới dùng
     }
 
     // Nếu game bắt đầu
@@ -268,9 +274,30 @@ async function fetchGameState() {
             promptWhiteHatGuess();
         }
 
+        // Xử lý thông báo người bị loại
+        players.forEach(p => {
+            if (p.status === 'Eliminated' && !notifiedEliminated.has(p.id)) {
+                notifiedEliminated.add(p.id);
+                // Nếu không phải là báo winner, thì báo người bị loại (tránh đè popup nếu game kết thúc luôn)
+                if (!winner) {
+                    Swal.fire({
+                        title: 'Có người bị loại!',
+                        text: `${p.name} đã bị loại. Thân phận thực sự: ${p.role.toUpperCase()}`,
+                        icon: 'info',
+                        confirmButtonColor: '#66fcf1',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 10000,
+                        timerProgressBar: true
+                    });
+                }
+            }
+        });
+
         // Xử lý game kết thúc
-        if (winner && currentGameState?.winner !== winner) {
-            clearInterval(pollingInterval);
+        if (winner && !isShowingWinner) {
+            isShowingWinner = true;
             
             let title = '';
             let text = '';
@@ -294,10 +321,17 @@ async function fetchGameState() {
                 text: text,
                 icon: icon,
                 confirmButtonColor: '#66fcf1',
-                confirmButtonText: 'Quay lại sảnh',
+                confirmButtonText: 'Đóng',
+                showDenyButton: isGM,
+                denyButtonText: 'Bắt đầu ván mới',
+                denyButtonColor: '#007bff',
                 allowOutsideClick: false
-            }).then(() => {
-                location.reload();
+            }).then(async (result) => {
+                if (result.isDenied) {
+                    Swal.showLoading();
+                    await callEngine('reset_room');
+                    Swal.close();
+                }
             });
         }
     }
