@@ -288,6 +288,15 @@ async function fetchGameState() {
 
     const { roomStatus, players, winner, waitingForWhiteHat } = res;
 
+    // Kiểm tra xem bản thân có còn trong phòng không (bị đuổi)
+    const amIStillInRoom = players.some(p => p.id === currentPlayerId);
+    if (!amIStillInRoom && currentPlayerId) {
+        clearInterval(pollingInterval);
+        sessionStorage.clear();
+        Swal.fire('Bị trục xuất', 'Bạn đã bị Chủ phòng đuổi khỏi phòng!', 'error').then(() => location.reload());
+        return;
+    }
+
     // Render danh sách chờ nếu phòng đang waiting
     if (roomStatus === 'waiting') {
         switchScreen('screen-waiting');
