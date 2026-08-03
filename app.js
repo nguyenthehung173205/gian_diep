@@ -226,6 +226,22 @@ async function eliminatePlayer(targetId, targetName) {
     }
 }
 
+async function kickWaitingPlayer(targetId, targetName) {
+    const confirm = await Swal.fire({
+        title: `Kick ${targetName}?`,
+        text: "Người này sẽ bị kick ra khỏi phòng!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff4c4c',
+        cancelButtonColor: '#1f2833',
+        confirmButtonText: 'Kick ngay'
+    });
+
+    if (confirm.isConfirmed) {
+        await callEngine('kick_player', { targetId });
+    }
+}
+
 async function handleLeaveRoom() {
     const confirm = await Swal.fire({
         title: 'Bạn muốn thoát phòng?',
@@ -386,6 +402,17 @@ function renderWaitingPlayers(players) {
                 <span class="player-name">${p.name} ${gmBadge}</span>
             </div>
         `;
+        
+        // Nút đuổi dành cho GM
+        if (isGM && !p.is_gm) {
+            const btn = document.createElement('button');
+            btn.className = 'btn-danger';
+            btn.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Kick';
+            btn.style.padding = '8px 12px';
+            btn.onclick = () => kickWaitingPlayer(p.id, p.name);
+            item.appendChild(btn);
+        }
+
         waitingPlayerList.appendChild(item);
     });
 }
