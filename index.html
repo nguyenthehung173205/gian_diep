@@ -71,10 +71,22 @@
                     <label>Mũ Trắng (White Hat):</label>
                     <input type="number" id="input-whitehats" value="0" min="0">
                 </div>
+                <div class="settings-group" style="flex-direction: row; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                    <label style="margin: 0; font-size: 14px;">Bật lộ thân phận khi bị loại</label>
+                    <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 20px;">
+                        <input type="checkbox" id="checkbox-reveal-waiting" checked style="opacity: 0; width: 0; height: 0;">
+                        <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px;"></span>
+                        <style>
+                            #checkbox-reveal-waiting:checked + .slider { background-color: var(--accent); }
+                            #checkbox-reveal-waiting:checked + .slider:before { transform: translateX(20px); }
+                            .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+                        </style>
+                    </label>
+                </div>
                 <button id="btn-start-game" style="margin-top: 10px;">Bắt Đầu Trò Chơi</button>
             </div>
 
-            <h3 style="text-align: left; font-size: 14px; margin-top: 20px; color: #888;">DANH SÁCH NGƯỜI CHƠI</h3>
+            <h3 style="text-align: left; font-size: 14px; margin-top: 20px; color: #888;">DANH SÁCH NGƯỜI CHƠI (Tổng: <span id="waiting-count">0</span>)</h3>
             <div class="player-list" id="waiting-player-list">
                 <!-- Chứa danh sách người chơi chờ -->
             </div>
@@ -115,11 +127,13 @@
                     <button id="btn-reset-room" class="btn-primary">Bắt đầu ván mới</button>
                     <button id="btn-cancel-room" class="btn-danger">Hủy Phòng</button>
                 </div>
-
-                <h3 style="text-align: left; font-size: 14px; margin-top: 10px; color: #888;">DANH SÁCH NGƯỜI CHƠI</h3>
+                <h3 style="margin-top: 20px; font-size: 14px; color:#888;">Quản lý người chơi</h3>
                 <div class="player-list" id="playing-player-list">
-                    <!-- Chứa danh sách người chơi trong game. GM có nút Loại bỏ -->
+                    <!-- Chứa danh sách người chơi để GM quản lý -->
                 </div>
+                <button id="btn-toggle-reveal-playing" style="width: 100%; margin-top: 15px; background: transparent; border: 2px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fa-solid fa-eye"></i> <span>Lộ diện: ĐANG BẬT</span>
+                </button>
             </div>
 
             <button id="btn-leave-room-playing" class="btn-danger" style="margin-top: 20px; width: 100%;">Thoát Phòng</button>
