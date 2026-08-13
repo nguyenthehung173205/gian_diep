@@ -1,6 +1,8 @@
 const ENGINE_URL = 'https://izrdxpbpmicatdtelkzo.supabase.co/functions/v1/undercover-engine';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6cmR4cGJwbWljYXRkdGVsa3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU2NzcyMTIsImV4cCI6MjEwMTI1MzIxMn0.6U_jsCLJRl3wGXQqoL7-A5SfMaKATXDHFnHA3zsjHyE';
 
+const supabaseClient = window.supabase.createClient('https://izrdxpbpmicatdtelkzo.supabase.co', SUPABASE_ANON_KEY);
+
 // =========================================================================
 // BIẾN TOÀN CỤC
 // =========================================================================
@@ -8,7 +10,8 @@ let currentRoomCode = null;
 let currentPlayerId = null;
 let currentName = null;
 let isGM = false;
-let pollingInterval = null;
+let realtimeChannel = null;
+let isToggling = false;
 let currentGameState = null;
 let notifiedEliminated = new Set();
 let isShowingWinner = false;
@@ -140,7 +143,8 @@ btnJoinRoom.addEventListener('click', async () => {
         if (isGM) gmSettings.style.display = 'flex';
         
         switchScreen('screen-waiting');
-        startPolling();
+        setupRealtime();
+        fetchGameState();
     } else {
         Swal.fire('Lỗi', res.message, 'error');
     }
@@ -213,13 +217,48 @@ btnCancelRoom.addEventListener('click', async () => {
     }
 });
 
-checkboxRevealWaiting.addEventListener('change', async () => {
+// =========================================================================
+// UTILS GIAO DIỆN NÚT BẤM
+// =========================================================================
+function updateToggleButtonUI(revealRoles) {
+    if (!btnToggleRevealPlaying) return;
+    const span = btnToggleRevealPlaying.querySelector('span');
+    const icon = btnToggleRevealPlaying.querySelector('i');
+    if (revealRoles) {
+        span.innerText = 'Lộ diện: ĐANG BẬT';
+        icon.className = 'fa-solid fa-eye';
+        btnToggleRevealPlaying.style.color = 'var(--accent)';
+        btnToggleRevealPlaying.style.borderColor = 'var(--accent)';
+    } else {
+        span.innerText = 'Lộ diện: ĐANG TẮT';
+        icon.className = 'fa-solid fa-eye-slash';
+        btnToggleRevealPlaying.style.color = '#888';
+        btnToggleRevealPlaying.style.borderColor = '#888';
+    }
+}
+
+checkboxRevealWaiting.addEventListener('change', async (e) => {
+    isToggling = true;
+    updateToggleButtonUI(e.target.checked);
     await callEngine('toggle_reveal_roles');
+    isToggling = false;
 });
 
-btnToggleRevealPlaying.addEventListener('click', async () => {
-    await callEngine('toggle_reveal_roles');
-});
+if (btnToggleRevealPlaying) {
+    btnToggleRevealPlaying.addEventListener('click', async () => {
+        isToggling = true;
+        // Lấy trạng thái hiện tại từ text của nút
+        const isCurrentlyOn = btnToggleRevealPlaying.querySelector('span').innerText.includes('BẬT');
+        const newState = !isCurrentlyOn;
+        
+        // Optimistic UI update
+        updateToggleButtonUI(newState);
+        if (checkboxRevealWaiting) checkboxRevealWaiting.checked = newState;
+        
+        await callEngine('toggle_reveal_roles');
+        isToggling = false;
+    });
+}
 
 async function eliminatePlayer(targetId, targetName) {
     const confirm = await Swal.fire({
@@ -268,7 +307,7 @@ async function handleLeaveRoom() {
         Swal.showLoading();
         await callEngine('leave_room');
         Swal.close();
-        clearInterval(pollingInterval);
+        if (realtimeChannel) await supabaseClient.removeChannel(realtimeChannel);
         sessionStorage.clear();
         location.reload();
     }
@@ -278,11 +317,20 @@ btnLeaveRoomWaiting.addEventListener('click', handleLeaveRoom);
 btnLeaveRoomPlaying.addEventListener('click', handleLeaveRoom);
 
 // =========================================================================
-// POLLING LOGIC
+// WEBSOCKETS LOGIC (SUPABASE REALTIME)
 // =========================================================================
-function startPolling() {
-    if (pollingInterval) clearInterval(pollingInterval);
-    pollingInterval = setInterval(fetchGameState, 2000);
+function setupRealtime() {
+    if (realtimeChannel) {
+        supabaseClient.removeChannel(realtimeChannel);
+    }
+    realtimeChannel = supabaseClient.channel('room_updates')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_rooms', filter: `room_code=eq.${currentRoomCode}` }, () => {
+            fetchGameState();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_players', filter: `room_code=eq.${currentRoomCode}` }, () => {
+            fetchGameState();
+        })
+        .subscribe();
 }
 
 async function fetchGameState() {
@@ -290,7 +338,7 @@ async function fetchGameState() {
     if (res.status !== 'success') {
         // Lỗi đồng bộ = Phòng đã bị xóa hoặc không còn tồn tại
         if (res.message === 'Lỗi đồng bộ' || res.message === 'Phòng không tồn tại!') {
-            clearInterval(pollingInterval);
+            if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
             sessionStorage.clear(); // Xóa bộ nhớ tạm để không tự reconnect vào phòng cũ
             Swal.fire('Phòng đã đóng', 'Phòng này không còn tồn tại hoặc đã bị hủy.', 'info').then(() => location.reload());
         }
@@ -299,29 +347,15 @@ async function fetchGameState() {
 
     const { roomStatus, players, winner, waitingForWhiteHat, revealRoles } = res;
 
-    if (isGM) {
+    if (isGM && !isToggling) {
         if (checkboxRevealWaiting) checkboxRevealWaiting.checked = revealRoles;
-        if (btnToggleRevealPlaying) {
-            const span = btnToggleRevealPlaying.querySelector('span');
-            const icon = btnToggleRevealPlaying.querySelector('i');
-            if (revealRoles) {
-                span.innerText = 'Lộ diện: ĐANG BẬT';
-                icon.className = 'fa-solid fa-eye';
-                btnToggleRevealPlaying.style.color = 'var(--accent)';
-                btnToggleRevealPlaying.style.borderColor = 'var(--accent)';
-            } else {
-                span.innerText = 'Lộ diện: ĐANG TẮT';
-                icon.className = 'fa-solid fa-eye-slash';
-                btnToggleRevealPlaying.style.color = '#888';
-                btnToggleRevealPlaying.style.borderColor = '#888';
-            }
-        }
+        updateToggleButtonUI(revealRoles);
     }
 
     // Kiểm tra xem bản thân có còn trong phòng không (bị đuổi)
     const amIStillInRoom = players.some(p => p.id === currentPlayerId);
     if (!amIStillInRoom && currentPlayerId) {
-        clearInterval(pollingInterval);
+        if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
         sessionStorage.clear();
         Swal.fire('Bị trục xuất', 'Bạn đã bị Chủ phòng đuổi khỏi phòng!', 'error').then(() => location.reload());
         return;
@@ -359,7 +393,6 @@ async function fetchGameState() {
         if (waitingForWhiteHat === currentPlayerId) {
             isPromptingWhiteHat = true;
             // Mũ trắng hiện form đoán
-            clearInterval(pollingInterval); // Tạm dừng poll tránh popup spam
             promptWhiteHatGuess();
         }
 
@@ -514,11 +547,11 @@ async function promptWhiteHatGuess() {
             await Swal.fire('Kết quả', res.message, 'info');
         }
         
-        // Resume polling
-        startPolling();
+        // Cập nhật lại UI sau khi đóng Swal
+        fetchGameState();
     } else {
-        // Nếu lỡ bị tắt popup mà chưa nhập, bật lại polling để hiện lại popup
-        startPolling();
+        // Nếu lỡ bị tắt popup mà chưa nhập, hiển thị lại khi có fetch mới
+        fetchGameState();
     }
 }
 
@@ -546,6 +579,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (isGM) gmSettings.style.display = 'flex';
         
         // Bắt đầu lấy dữ liệu luôn, hàm fetchGameState sẽ tự điều hướng đúng màn hình
-        startPolling();
+        setupRealtime();
+        fetchGameState();
     }
 });
