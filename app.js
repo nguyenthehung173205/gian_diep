@@ -31,6 +31,8 @@ const displayRoomCode = document.getElementById('display-room-code');
 const gmSettings = document.getElementById('gm-settings');
 const btnStartGame = document.getElementById('btn-start-game');
 const waitingPlayerList = document.getElementById('waiting-player-list');
+const waitingCount = document.getElementById('waiting-count');
+const checkboxRevealWaiting = document.getElementById('checkbox-reveal-waiting');
 
 // Playing
 const keywordCard = document.getElementById('keyword-card');
@@ -40,6 +42,7 @@ const btnGmMenu = document.getElementById('btn-gm-menu');
 const gmMenuContent = document.getElementById('gm-menu-content');
 const btnCancelRoom = document.getElementById('btn-cancel-room');
 const btnResetRoom = document.getElementById('btn-reset-room');
+const btnToggleRevealPlaying = document.getElementById('btn-toggle-reveal-playing');
 const displayPlayingRoomCode = document.getElementById('display-playing-room-code');
 const displayPlayingName = document.getElementById('display-playing-name');
 const btnLeaveRoomWaiting = document.getElementById('btn-leave-room-waiting');
@@ -210,6 +213,14 @@ btnCancelRoom.addEventListener('click', async () => {
     }
 });
 
+checkboxRevealWaiting.addEventListener('change', async () => {
+    await callEngine('toggle_reveal_roles');
+});
+
+btnToggleRevealPlaying.addEventListener('click', async () => {
+    await callEngine('toggle_reveal_roles');
+});
+
 async function eliminatePlayer(targetId, targetName) {
     const confirm = await Swal.fire({
         title: `Loại bỏ ${targetName}?`,
@@ -286,7 +297,26 @@ async function fetchGameState() {
         return;
     }
 
-    const { roomStatus, players, winner, waitingForWhiteHat } = res;
+    const { roomStatus, players, winner, waitingForWhiteHat, revealRoles } = res;
+
+    if (isGM) {
+        if (checkboxRevealWaiting) checkboxRevealWaiting.checked = revealRoles;
+        if (btnToggleRevealPlaying) {
+            const span = btnToggleRevealPlaying.querySelector('span');
+            const icon = btnToggleRevealPlaying.querySelector('i');
+            if (revealRoles) {
+                span.innerText = 'Lộ diện: ĐANG BẬT';
+                icon.className = 'fa-solid fa-eye';
+                btnToggleRevealPlaying.style.color = 'var(--accent)';
+                btnToggleRevealPlaying.style.borderColor = 'var(--accent)';
+            } else {
+                span.innerText = 'Lộ diện: ĐANG TẮT';
+                icon.className = 'fa-solid fa-eye-slash';
+                btnToggleRevealPlaying.style.color = '#888';
+                btnToggleRevealPlaying.style.borderColor = '#888';
+            }
+        }
+    }
 
     // Kiểm tra xem bản thân có còn trong phòng không (bị đuổi)
     const amIStillInRoom = players.some(p => p.id === currentPlayerId);
@@ -399,6 +429,7 @@ async function fetchGameState() {
 }
 
 function renderWaitingPlayers(players) {
+    if (waitingCount) waitingCount.innerText = players.length;
     waitingPlayerList.innerHTML = '';
     players.forEach(p => {
         const item = document.createElement('div');
