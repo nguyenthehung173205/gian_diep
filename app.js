@@ -15,6 +15,7 @@ let isToggling = false;
 let currentGameState = null;
 let notifiedEliminated = new Set();
 let isShowingWinner = false;
+let isPromptingWhiteHat = false;
 
 // =========================================================================
 // UI ELEMENTS
@@ -389,8 +390,7 @@ async function fetchGameState() {
         }
 
         // Xử lý Mũ trắng đoán chữ (Chỉ hiển thị cho người bị loại và là Mũ trắng)
-        let isPromptingWhiteHat = false;
-        if (waitingForWhiteHat === currentPlayerId) {
+        if (waitingForWhiteHat === currentPlayerId && !isPromptingWhiteHat) {
             isPromptingWhiteHat = true;
             // Mũ trắng hiện form đoán
             promptWhiteHatGuess();
@@ -547,9 +547,11 @@ async function promptWhiteHatGuess() {
             await Swal.fire('Kết quả', res.message, 'info');
         }
         
+        isPromptingWhiteHat = false;
         // Cập nhật lại UI sau khi đóng Swal
         fetchGameState();
     } else {
+        isPromptingWhiteHat = false;
         // Nếu lỡ bị tắt popup mà chưa nhập, hiển thị lại khi có fetch mới
         fetchGameState();
     }
