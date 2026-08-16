@@ -346,7 +346,7 @@ async function fetchGameState() {
         return;
     }
 
-    const { roomStatus, players, winner, waitingForWhiteHat, revealRoles } = res;
+    const { roomStatus, players, winner, waitingForWhiteHat, revealRoles, spies, whiteHats } = res;
 
     if (isGM && !isToggling) {
         if (checkboxRevealWaiting) checkboxRevealWaiting.checked = revealRoles;
@@ -368,6 +368,12 @@ async function fetchGameState() {
         renderWaitingPlayers(players);
         isShowingWinner = false; // Reset cờ winner nếu có
         notifiedEliminated.clear(); // Xóa lịch sử loại để ván mới dùng
+        
+        // Khôi phục cài đặt số lượng từ ván trước (nếu có)
+        if (isGM) {
+            if (spies !== undefined && spies !== null) document.getElementById('input-spies').value = spies;
+            if (whiteHats !== undefined && whiteHats !== null) document.getElementById('input-whitehats').value = whiteHats;
+        }
     }
 
     // Nếu game bắt đầu
