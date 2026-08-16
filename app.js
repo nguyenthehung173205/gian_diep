@@ -16,6 +16,7 @@ let currentGameState = null;
 let notifiedEliminated = new Set();
 let isShowingWinner = false;
 let isPromptingWhiteHat = false;
+let notifiedWaitingWhiteHat = false;
 
 // =========================================================================
 // CUSTOM UI (Thay thế SweetAlert2)
@@ -569,10 +570,26 @@ async function fetchGameState() {
         }
 
         // Xử lý Mũ trắng đoán chữ (Chỉ hiển thị cho người bị loại và là Mũ trắng)
-        if (waitingForWhiteHat === currentPlayerId && !isPromptingWhiteHat) {
-            isPromptingWhiteHat = true;
-            // Mũ trắng hiện form đoán
-            promptWhiteHatGuess();
+        if (waitingForWhiteHat) {
+            if (waitingForWhiteHat === currentPlayerId && !isPromptingWhiteHat) {
+                isPromptingWhiteHat = true;
+                // Mũ trắng hiện form đoán
+                promptWhiteHatGuess();
+            } else if (waitingForWhiteHat !== currentPlayerId && !notifiedWaitingWhiteHat) {
+                notifiedWaitingWhiteHat = true;
+                Swal.fire({
+                    title: 'Trận đấu sinh tử!',
+                    text: 'Mũ Trắng đang nhập từ khóa để phân định thắng bại...',
+                    icon: 'warning',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 6000,
+                    timerProgressBar: true
+                });
+            }
+        } else {
+            notifiedWaitingWhiteHat = false;
         }
 
         // Xử lý thông báo người bị loại
