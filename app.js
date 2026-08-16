@@ -18,6 +18,179 @@ let isShowingWinner = false;
 let isPromptingWhiteHat = false;
 
 // =========================================================================
+// CUSTOM UI (Thay thế SweetAlert2)
+// =========================================================================
+const CustomUI = {
+    modalQueue: [],
+    isModalShowing: false,
+    toastContainer: document.getElementById('toast-container'),
+    modalOverlay: document.getElementById('custom-modal-overlay'),
+    modalTitle: document.getElementById('modal-title'),
+    modalBody: document.getElementById('modal-body'),
+    modalFooter: document.getElementById('modal-footer'),
+    modalIcon: document.getElementById('modal-icon'),
+
+    fire: function(arg1, arg2, arg3) {
+        let options = {};
+        if (typeof arg1 === 'string') {
+            options = { title: arg1, text: arg2 || '', icon: arg3 };
+        } else {
+            options = arg1;
+        }
+
+        if (options.toast) {
+            this.showToast(options);
+            return Promise.resolve({ isConfirmed: false, isDenied: false });
+        }
+
+        return new Promise((resolve) => {
+            this.modalQueue.push({ options, resolve });
+            this.processQueue();
+        });
+    },
+
+    showLoading: function() {
+        this.fire({
+            title: 'Đang xử lý...',
+            text: '<div class="loader-spinner"></div>',
+            showConfirmButton: false,
+            allowOutsideClick: false
+        });
+    },
+
+    close: function() {
+        // Xóa modal loading đang hiện (nếu có)
+        if (this.isModalShowing && this.modalQueue[0]?.options.showConfirmButton === false) {
+            this.hideModal();
+        } else {
+            // Hoặc xóa khỏi queue nếu chưa kịp hiện
+            this.modalQueue = this.modalQueue.filter(m => m.options.showConfirmButton !== false);
+        }
+    },
+
+    processQueue: function() {
+        if (this.isModalShowing || this.modalQueue.length === 0) return;
+        const { options, resolve } = this.modalQueue[0];
+        this.showModal(options, resolve);
+    },
+
+    showModal: function(options, resolve) {
+        this.isModalShowing = true;
+        
+        this.modalTitle.innerText = options.title || '';
+        this.modalBody.innerHTML = options.text || '';
+        
+        let iconClass = 'fa-solid fa-circle-info';
+        let iconColor = 'var(--accent)';
+        if (options.icon === 'success') { iconClass = 'fa-solid fa-circle-check'; iconColor = '#66fcf1'; }
+        if (options.icon === 'error') { iconClass = 'fa-solid fa-circle-xmark'; iconColor = 'var(--danger)'; }
+        if (options.icon === 'warning') { iconClass = 'fa-solid fa-triangle-exclamation'; iconColor = '#ffc107'; }
+        if (options.icon === 'question') { iconClass = 'fa-solid fa-circle-question'; iconColor = '#007bff'; }
+        
+        this.modalIcon.className = iconClass;
+        this.modalIcon.style.color = iconColor;
+        this.modalIcon.style.display = options.icon ? 'block' : 'none';
+
+        if (options.input === 'text') {
+            const inputEl = document.createElement('input');
+            inputEl.type = 'text';
+            inputEl.placeholder = options.inputPlaceholder || '';
+            inputEl.id = 'custom-modal-input';
+            this.modalBody.appendChild(inputEl);
+        }
+
+        this.modalFooter.innerHTML = '';
+        
+        const showConfirm = options.showConfirmButton !== false;
+        if (showConfirm) {
+            const confirmBtn = document.createElement('button');
+            confirmBtn.innerText = options.confirmButtonText || 'OK';
+            confirmBtn.style.background = options.confirmButtonColor || 'var(--accent)';
+            confirmBtn.style.color = 'var(--bg-color)';
+            confirmBtn.onclick = () => {
+                let value = null;
+                if (options.input === 'text') {
+                    const inputEl = document.getElementById('custom-modal-input');
+                    value = inputEl.value.trim();
+                    if (options.inputValidator) {
+                        const err = options.inputValidator(value);
+                        if (err) {
+                            this.showToast({ icon: 'error', title: err });
+                            return;
+                        }
+                    }
+                }
+                this.hideModal();
+                resolve({ isConfirmed: true, isDenied: false, value });
+            };
+            this.modalFooter.appendChild(confirmBtn);
+        }
+
+        if (options.showDenyButton) {
+            const denyBtn = document.createElement('button');
+            denyBtn.innerText = options.denyButtonText || 'Không';
+            denyBtn.style.background = options.denyButtonColor || 'var(--danger)';
+            denyBtn.style.color = 'white';
+            denyBtn.onclick = () => {
+                this.hideModal();
+                resolve({ isConfirmed: false, isDenied: true });
+            };
+            this.modalFooter.appendChild(denyBtn);
+        }
+
+        if (options.showCancelButton) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.innerText = options.cancelButtonText || 'Hủy';
+            cancelBtn.style.background = options.cancelButtonColor || 'var(--panel-bg)';
+            cancelBtn.style.border = '1px solid #888';
+            cancelBtn.style.color = 'white';
+            cancelBtn.onclick = () => {
+                this.hideModal();
+                resolve({ isConfirmed: false, isDenied: false });
+            };
+            this.modalFooter.appendChild(cancelBtn);
+        }
+
+        if (this.modalFooter.children.length === 0) {
+            this.modalFooter.style.display = 'none';
+        } else {
+            this.modalFooter.style.display = 'flex';
+        }
+
+        this.modalOverlay.classList.remove('hidden');
+    },
+
+    hideModal: function() {
+        this.modalOverlay.classList.add('hidden');
+        this.isModalShowing = false;
+        this.modalQueue.shift(); // Xóa khỏi hàng đợi
+        setTimeout(() => this.processQueue(), 300); // Chờ animation 0.3s
+    },
+
+    showToast: function(options) {
+        const toast = document.createElement('div');
+        toast.className = `custom-toast ${options.icon === 'error' ? 'error' : ''}`;
+        
+        let icon = 'fa-solid fa-circle-info';
+        if (options.icon === 'error') icon = 'fa-solid fa-circle-xmark';
+        
+        const titleHtml = options.title ? `<b>${options.title}</b><br/>` : '';
+        const textHtml = options.text ? `${options.text}` : '';
+        
+        toast.innerHTML = `<i class="${icon}"></i> <span>${titleHtml}${textHtml}</span>`;
+        
+        this.toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 4000); // Khớp với animation CSS (0.3s + 3.7s)
+    }
+};
+
+// Gắn đè CustomUI vào tên Swal để toàn bộ code cũ hoạt động bình thường
+const Swal = CustomUI;
+
+// =========================================================================
 // UI ELEMENTS
 // =========================================================================
 const screenLobby = document.getElementById('screen-lobby');
