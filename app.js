@@ -724,7 +724,7 @@ function renderPlayingPlayers(players, winner) {
 async function promptWhiteHatGuess() {
     const { value: guess } = await Swal.fire({
         title: 'BẠN LÀ MŨ TRẮNG',
-        text: 'Bạn đã bị loại! Trận đấu phụ thuộc vào bạn. Hãy nhập từ khóa của phe Dân mà bạn nghe lỏm được:',
+        text: 'Bạn đã bị lộ thân phận Mũ Trắng! Trận đấu phụ thuộc vào bạn. Hãy nhập từ khóa của phe Dân mà bạn nghe lỏm được:',
         input: 'text',
         inputPlaceholder: 'Nhập từ khóa...',
         showCancelButton: false,
