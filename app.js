@@ -306,11 +306,13 @@ btnJoinRoom.addEventListener('click', async () => {
         currentName = name;
         isGM = res.isGM;
         
-        // Lưu vào sessionStorage để chống văng khi load lại/chuyển tab
-        sessionStorage.setItem('uc_roomCode', currentRoomCode);
-        sessionStorage.setItem('uc_playerId', currentPlayerId);
-        sessionStorage.setItem('uc_playerName', currentName);
-        sessionStorage.setItem('uc_isGM', isGM);
+        // Lưu vào localStorage để chống văng tuyệt đối
+        localStorage.setItem('uc_roomCode', currentRoomCode);
+        localStorage.setItem('uc_playerId', currentPlayerId);
+        localStorage.setItem('uc_playerName', currentName);
+        localStorage.setItem('uc_isGM', isGM);
+        // Hẹn giờ tự hủy 2 tiếng
+        localStorage.setItem('uc_expiry', Date.now() + 2 * 60 * 60 * 1000);
 
         displayRoomCode.innerText = currentRoomCode;
         displayPlayingRoomCode.innerText = currentRoomCode;
@@ -463,7 +465,10 @@ async function kickWaitingPlayer(targetId, targetName) {
     });
 
     if (confirm.isConfirmed) {
+        Swal.showLoading();
         await callEngine('kick_player', { targetId });
+        await fetchGameState(); // Ép cập nhật danh sách vì Realtime bỏ qua lệnh Delete
+        Swal.close();
     }
 }
 
@@ -483,7 +488,7 @@ async function handleLeaveRoom() {
         await callEngine('leave_room');
         Swal.close();
         if (realtimeChannel) await supabaseClient.removeChannel(realtimeChannel);
-        sessionStorage.clear();
+        localStorage.clear();
         location.reload();
     }
 }
@@ -514,7 +519,7 @@ async function fetchGameState() {
         // Lỗi đồng bộ = Phòng đã bị xóa hoặc không còn tồn tại
         if (res.message === 'Lỗi đồng bộ' || res.message === 'Phòng không tồn tại!') {
             if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
-            sessionStorage.clear(); // Xóa bộ nhớ tạm để không tự reconnect vào phòng cũ
+            localStorage.clear(); // Xóa bộ nhớ để không bị kẹt phòng cũ
             Swal.fire('Phòng đã đóng', 'Phòng này không còn tồn tại hoặc đã bị hủy.', 'info').then(() => location.reload());
         }
         return;
@@ -531,7 +536,7 @@ async function fetchGameState() {
     const amIStillInRoom = players.some(p => p.id === currentPlayerId);
     if (!amIStillInRoom && currentPlayerId) {
         if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
-        sessionStorage.clear();
+        localStorage.clear();
         Swal.fire('Bị trục xuất', 'Bạn đã bị Chủ phòng đuổi khỏi phòng!', 'error').then(() => location.reload());
         return;
     }
@@ -757,12 +762,22 @@ async function promptWhiteHatGuess() {
 // KHÔI PHỤC TRẠNG THÁI (CHỐNG VĂNG KHI CHUYỂN TAB / TẮT MÀN HÌNH)
 // =========================================================================
 window.addEventListener('DOMContentLoaded', () => {
-    const savedRoom = sessionStorage.getItem('uc_roomCode');
-    const savedPlayer = sessionStorage.getItem('uc_playerId');
-    const savedName = sessionStorage.getItem('uc_playerName');
-    const savedGM = sessionStorage.getItem('uc_isGM');
+    const savedRoom = localStorage.getItem('uc_roomCode');
+    const savedPlayer = localStorage.getItem('uc_playerId');
+    const savedName = localStorage.getItem('uc_playerName');
+    const savedGM = localStorage.getItem('uc_isGM');
+    const expiry = localStorage.getItem('uc_expiry');
+
+    // Tự động dọn rác nếu quá thời hạn 2 tiếng
+    if (expiry && Date.now() > parseInt(expiry)) {
+        localStorage.clear();
+        return;
+    }
 
     if (savedRoom && savedPlayer) {
+        // Gia hạn thêm 2 tiếng mỗi khi tải lại trang
+        localStorage.setItem('uc_expiry', Date.now() + 2 * 60 * 60 * 1000);
+
         // Khôi phục biến toàn cục
         currentRoomCode = savedRoom;
         currentPlayerId = savedPlayer;
