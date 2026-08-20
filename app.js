@@ -829,3 +829,16 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// =========================================================================
+// SỰ KIỆN ĐÁNH THỨC (VISIBILITY CHANGE)
+// =========================================================================
+document.addEventListener('visibilitychange', () => {
+    // Khi người chơi bật sáng màn hình hoặc quay lại tab
+    if (document.visibilityState === 'visible') {
+        // Nếu đang ở trong phòng, lập tức cập nhật dữ liệu để tránh lỡ nhịp (Stale state)
+        if (currentRoomCode) {
+            fetchGameState();
+        }
+    }
+});
