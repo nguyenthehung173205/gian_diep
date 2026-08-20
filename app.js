@@ -515,6 +515,10 @@ function setupRealtime() {
 
 async function fetchGameState() {
     const res = await callEngine('get_state');
+    
+    // Tự động đóng Modal Loading (CustomUI sẽ tự biết bỏ qua nếu modal đang hiện không phải là Loading)
+    Swal.close();
+
     if (res.status !== 'success') {
         // Lỗi đồng bộ = Phòng đã bị xóa hoặc không còn tồn tại
         if (res.message === 'Lỗi đồng bộ' || res.message === 'Phòng không tồn tại!') {
@@ -793,6 +797,15 @@ window.addEventListener('DOMContentLoaded', () => {
         
         // Bắt đầu lấy dữ liệu luôn, hàm fetchGameState sẽ tự điều hướng đúng màn hình
         setupRealtime();
+        
+        // Hiện Màn hình Loading kết nối lại ngay lập tức bằng CustomUI
+        Swal.fire({
+            title: 'Đang kết nối lại...',
+            text: '<div class="loader-spinner"></div> <br/><br/> Vui lòng chờ...',
+            showConfirmButton: false, // Báo cho CustomUI biết đây là Loading Modal
+            allowOutsideClick: false
+        });
+
         fetchGameState();
     }
 });
