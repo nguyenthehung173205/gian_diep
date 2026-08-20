@@ -806,6 +806,26 @@ window.addEventListener('DOMContentLoaded', () => {
             allowOutsideClick: false
         });
 
-        fetchGameState();
+        // Bắt đầu đếm ngược 20s chặn treo mạng
+        const reconnectTimeout = setTimeout(() => {
+            Swal.close(); // Tắt Loading modal hiện tại để dọn chỗ cho modal Mạng yếu
+            Swal.fire({
+                icon: 'warning',
+                title: 'Mạng yếu!',
+                text: 'Mất quá nhiều thời gian để kết nối đến Máy chủ. Vui lòng thử lại!',
+                showConfirmButton: true,
+                confirmButtonText: 'Kết nối lại',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    location.reload();
+                }
+            });
+        }, 20000);
+
+        // Chạy fetch và hủy hẹn giờ nếu fetch xong trước 20s
+        fetchGameState().then(() => {
+            clearTimeout(reconnectTimeout);
+        });
     }
 });
