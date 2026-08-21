@@ -376,6 +376,16 @@ btnJoinRoom.addEventListener('click', async () => {
 btnStartGame.addEventListener('click', async () => {
     const spies = parseInt(document.getElementById('input-spies').value);
     const whiteHats = parseInt(document.getElementById('input-whitehats').value);
+    
+    if (isNaN(spies) || spies < 1) {
+        Swal.fire('Lỗi', 'Số lượng Gián điệp phải lớn hơn hoặc bằng 1!', 'error');
+        return;
+    }
+    if (isNaN(whiteHats) || whiteHats < 0) {
+        Swal.fire('Lỗi', 'Số lượng Mũ trắng không hợp lệ!', 'error');
+        return;
+    }
+
     const wordPackStr = document.getElementById('input-wordpack')?.value;
     const wordPack = wordPackStr ? parseInt(wordPackStr, 10) : 0;
 
