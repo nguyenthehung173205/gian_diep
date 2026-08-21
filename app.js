@@ -333,9 +333,11 @@ btnJoinRoom.addEventListener('click', async () => {
 btnStartGame.addEventListener('click', async () => {
     const spies = parseInt(document.getElementById('input-spies').value);
     const whiteHats = parseInt(document.getElementById('input-whitehats').value);
+    const wordPackStr = document.getElementById('input-wordpack')?.value;
+    const wordPack = wordPackStr ? parseInt(wordPackStr, 10) : 0;
 
     Swal.showLoading();
-    const res = await callEngine('start_game', { spies, whiteHats });
+    const res = await callEngine('start_game', { spies, whiteHats, wordPack });
     Swal.close();
 
     if (res.status === 'error') {
@@ -529,7 +531,7 @@ async function fetchGameState() {
         return;
     }
 
-    const { roomStatus, players, winner, waitingForWhiteHat, revealRoles, spies, whiteHats } = res;
+    const { roomStatus, players, winner, waitingForWhiteHat, revealRoles, spies, whiteHats, wordPack } = res;
 
     if (isGM && !isToggling) {
         if (checkboxRevealWaiting) checkboxRevealWaiting.checked = revealRoles;
@@ -556,6 +558,10 @@ async function fetchGameState() {
         if (isGM) {
             if (spies !== undefined && spies !== null) document.getElementById('input-spies').value = spies;
             if (whiteHats !== undefined && whiteHats !== null) document.getElementById('input-whitehats').value = whiteHats;
+            if (wordPack !== undefined && wordPack !== null) {
+                const el = document.getElementById('input-wordpack');
+                if (el) el.value = wordPack;
+            }
         }
     }
 
