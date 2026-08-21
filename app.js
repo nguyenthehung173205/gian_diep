@@ -286,6 +286,37 @@ btnCreateRoom.addEventListener('click', async () => {
         Swal.fire('Lỗi', res.message, 'error');
     }
 });
+// Custom Dropdown Logic
+document.getElementById('wordpack-trigger')?.addEventListener('click', (e) => {
+    const options = document.getElementById('wordpack-options');
+    options.style.display = options.style.display === 'none' ? 'block' : 'none';
+});
+
+document.querySelectorAll('.custom-option').forEach(option => {
+    option.addEventListener('click', (e) => {
+        const val = option.getAttribute('data-value');
+        const text = option.innerHTML;
+        
+        const triggerSpan = document.querySelector('#wordpack-trigger span');
+        if (triggerSpan) triggerSpan.innerHTML = text;
+        
+        const hiddenInput = document.getElementById('input-wordpack');
+        if (hiddenInput) hiddenInput.value = val;
+        
+        document.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+        option.classList.add('selected');
+        
+        document.getElementById('wordpack-options').style.display = 'none';
+    });
+});
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-select-wrapper')) {
+        const options = document.getElementById('wordpack-options');
+        if(options) options.style.display = 'none';
+    }
+});
+
 
 btnJoinRoom.addEventListener('click', async () => {
     const code = document.getElementById('input-room-code').value.trim();
@@ -561,6 +592,13 @@ async function fetchGameState() {
             if (wordPack !== undefined && wordPack !== null) {
                 const el = document.getElementById('input-wordpack');
                 if (el) el.value = wordPack;
+                const targetOption = document.querySelector(`.custom-option[data-value="${wordPack}"]`);
+                if (targetOption) {
+                    const triggerSpan = document.querySelector('#wordpack-trigger span');
+                    if (triggerSpan) triggerSpan.innerHTML = targetOption.innerHTML;
+                    document.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+                    targetOption.classList.add('selected');
+                }
             }
         }
     }
