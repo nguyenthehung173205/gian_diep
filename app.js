@@ -289,7 +289,14 @@ btnCreateRoom.addEventListener('click', async () => {
 // Custom Dropdown Logic
 document.getElementById('wordpack-trigger')?.addEventListener('click', (e) => {
     const options = document.getElementById('wordpack-options');
-    options.style.display = options.style.display === 'none' ? 'block' : 'none';
+    const wrapper = e.currentTarget.parentElement;
+    if (options.style.display === 'none' || !options.style.display) {
+        options.style.display = 'block';
+        wrapper.classList.add('open');
+    } else {
+        options.style.display = 'none';
+        wrapper.classList.remove('open');
+    }
 });
 
 document.querySelectorAll('.custom-option').forEach(option => {
@@ -306,14 +313,19 @@ document.querySelectorAll('.custom-option').forEach(option => {
         document.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
         option.classList.add('selected');
         
-        document.getElementById('wordpack-options').style.display = 'none';
+        const options = document.getElementById('wordpack-options');
+        options.style.display = 'none';
+        options.parentElement.classList.remove('open');
     });
 });
 
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.custom-select-wrapper')) {
         const options = document.getElementById('wordpack-options');
-        if(options) options.style.display = 'none';
+        if(options) {
+            options.style.display = 'none';
+            options.parentElement.classList.remove('open');
+        }
     }
 });
 
