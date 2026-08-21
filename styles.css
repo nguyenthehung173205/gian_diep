@@ -25,7 +25,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center; /* Căn giữa dọc */
+    justify-content: center;
     min-height: 100vh;
     padding: 20px;
     -webkit-font-smoothing: antialiased;
@@ -285,7 +285,7 @@ button.btn-danger:hover {
     flex-direction: column;
     gap: 10px;
     z-index: 9999;
-    pointer-events: none; /* Không cản trở click bên dưới */
+    pointer-events: none;
 }
 
 .custom-toast {
@@ -301,7 +301,7 @@ button.btn-danger:hover {
     align-items: center;
     gap: 12px;
     animation: slideInRight 0.3s ease-out forwards, fadeOut 0.3s ease-in 3.7s forwards;
-    pointer-events: auto; /* Cho phép click tắt (nếu cần) */
+    pointer-events: auto;
 }
 .custom-toast.error { border-color: var(--danger); }
 .custom-toast.error i { color: var(--danger); }
@@ -400,3 +400,63 @@ button.btn-danger:hover {
     margin: 0 auto;
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+
+/* Custom Dropdown UI for Word Packs - Cyberpunk Theme */
+.custom-select-wrapper {
+    position: relative;
+    width: 170px;
+    margin-left: auto;
+    font-family: inherit;
+}
+.custom-select-trigger {
+    background: var(--panel-bg);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-heading);
+    padding: 10px 12px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(102, 252, 241, 0.2);
+}
+.custom-select-trigger:active {
+    background: rgba(102, 252, 241, 0.1);
+}
+.custom-select-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(11, 12, 16, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+}
+.custom-option {
+    padding: 10px 12px;
+    color: var(--text-main);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid rgba(102, 252, 241, 0.1);
+}
+.custom-option:last-child {
+    border-bottom: none;
+}
+.custom-option:hover, .custom-option.selected {
+    background: rgba(102, 252, 241, 0.1);
+    color: var(--accent);
+    border-left: 3px solid var(--accent);
+    text-shadow: 0 0 5px var(--accent);
+}
+
