@@ -285,7 +285,7 @@ button.btn-danger:hover {
     flex-direction: column;
     gap: 10px;
     z-index: 9999;
-    pointer-events: none; 
+    pointer-events: none;
 }
 
 .custom-toast {
@@ -301,7 +301,7 @@ button.btn-danger:hover {
     align-items: center;
     gap: 12px;
     animation: slideInRight 0.3s ease-out forwards, fadeOut 0.3s ease-in 3.7s forwards;
-    pointer-events: auto;
+    pointer-events: auto; 
 }
 .custom-toast.error { border-color: var(--danger); }
 .custom-toast.error i { color: var(--danger); }
@@ -419,6 +419,7 @@ button.btn-danger:hover {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     cursor: pointer;
     font-size: 14px;
     transition: all 0.3s ease;
