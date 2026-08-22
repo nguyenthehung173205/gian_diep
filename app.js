@@ -565,7 +565,11 @@ function setupRealtime() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_players', filter: `room_code=eq.${currentRoomCode}` }, () => {
             fetchGameState();
         })
-        .subscribe();
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                fetchGameState();
+            }
+        });
 }
 
 async function fetchGameState() {
@@ -792,6 +796,17 @@ function renderPlayingPlayers(players, winner) {
             item.appendChild(btn);
         }
 
+        // Nút Kick cho người chơi đã bị loại
+        if (isGM && p.status === 'Eliminated' && p.id !== currentPlayerId) {
+            const kickBtn = document.createElement('button');
+            kickBtn.className = 'btn-danger';
+            kickBtn.innerHTML = '<i class="fa-solid fa-user-slash"></i>';
+            kickBtn.style.padding = '8px 12px';
+            kickBtn.style.marginLeft = '8px';
+            kickBtn.onclick = () => kickWaitingPlayer(p.id, p.name);
+            item.appendChild(kickBtn);
+        }
+
         playingPlayerList.appendChild(item);
     });
 }
@@ -906,5 +921,12 @@ document.addEventListener('visibilitychange', () => {
         if (currentRoomCode) {
             fetchGameState();
         }
+    }
+});
+
+// Sự kiện khi trình duyệt lấy lại được kết nối mạng (ra khỏi thang máy, hầm...)
+window.addEventListener('online', () => {
+    if (currentRoomCode) {
+        fetchGameState();
     }
 });
