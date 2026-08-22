@@ -1,4 +1,4 @@
-const ENGINE_URL = 'https://cnixojokycbsfdjxxfgu.supabase.co/rest/v1/undercover-engine';
+const ENGINE_URL = 'https://cnixojokycbsfdjxxfgu.supabase.co/functions/v1/undercover-engine';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuaXhvam9reWNic2Zkanh4Zmd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0MDIwMjcsImV4cCI6MjEwMjk3ODAyN30.kQtKj4ve5n3uunZmV7EvqKlKC7eTdoZUJyp9AkYpL_Y';
 
 const supabaseClient = window.supabase.createClient('https://cnixojokycbsfdjxxfgu.supabase.co', SUPABASE_ANON_KEY);
