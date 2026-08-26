@@ -655,7 +655,7 @@ async function fetchGameState() {
         }
 
         // Xử lý Mũ trắng đoán chữ (Chỉ hiển thị cho người bị loại và là Mũ trắng)
-        if (waitingForWhiteHat) {
+        if (waitingForWhiteHat && !winner) {
             if (waitingForWhiteHat === currentPlayerId && !isPromptingWhiteHat) {
                 isPromptingWhiteHat = true;
                 // Mũ trắng hiện form đoán
