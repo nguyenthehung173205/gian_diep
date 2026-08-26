@@ -13,6 +13,7 @@ let isGM = false;
 let realtimeChannel = null;
 let isToggling = false;
 let currentGameState = null;
+let lastWhiteHatFailedAt = null;
 let notifiedEliminated = new Set();
 let isShowingWinner = false;
 let isPromptingWhiteHat = false;
@@ -493,6 +494,11 @@ if (btnToggleRevealPlaying) {
 }
 
 async function eliminatePlayer(targetId, targetName) {
+    if (currentGameState && currentGameState.waitingForWhiteHat) {
+        Swal.fire('Cảnh báo', 'Mũ trắng chưa đoán từ! Vui lòng chờ mũ trắng đoán từ hoặc Kick mũ trắng ra khỏi phòng để có thể loại bỏ người tiếp theo.', 'warning');
+        return;
+    }
+
     const confirm = await Swal.fire({
         title: `Loại bỏ ${targetName}?`,
         text: "Thao tác này không thể hoàn tác!",
@@ -588,7 +594,7 @@ async function fetchGameState() {
         return;
     }
 
-    const { roomStatus, players, winner, waitingForWhiteHat, revealRoles, spies, whiteHats, wordPack } = res;
+    const { roomStatus, players, winner, waitingForWhiteHat, whiteHatFailedAt, revealRoles, spies, whiteHats, wordPack } = res;
 
     if (isGM && !isToggling) {
         if (checkboxRevealWaiting) checkboxRevealWaiting.checked = revealRoles;
@@ -669,6 +675,23 @@ async function fetchGameState() {
             }
         } else {
             notifiedWaitingWhiteHat = false;
+        }
+
+        // Báo Mũ trắng đoán sai
+        if (whiteHatFailedAt && whiteHatFailedAt !== lastWhiteHatFailedAt) {
+            lastWhiteHatFailedAt = whiteHatFailedAt;
+            if (!winner) {
+                Swal.fire({
+                    title: 'Sai rồi!',
+                    text: 'Mũ trắng đã đoán SAI. Trò chơi tiếp tục!',
+                    icon: 'error',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            }
         }
 
         // Xử lý thông báo người bị loại
