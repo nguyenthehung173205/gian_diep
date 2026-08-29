@@ -428,6 +428,7 @@ btnResetRoom.addEventListener('click', async () => {
     });
 
     if (confirm.isConfirmed) {
+        Swal.showLoading();
         await callEngine('reset_room');
         gmMenuContent.style.display = 'none'; // Ẩn menu
         fetchGameState(); // Lấy dữ liệu ngay lập tức
@@ -446,6 +447,7 @@ btnCancelRoom.addEventListener('click', async () => {
     });
 
     if (confirm.isConfirmed) {
+        Swal.showLoading();
         await callEngine('cancel_room');
     }
 });
@@ -510,7 +512,9 @@ async function eliminatePlayer(targetId, targetName) {
     });
 
     if (confirm.isConfirmed) {
+        Swal.showLoading();
         await callEngine('eliminate_player', { targetId });
+        Swal.close();
     }
 }
 
@@ -753,6 +757,7 @@ async function fetchGameState() {
                 allowOutsideClick: false
             }).then(async (result) => {
                 if (result.isDenied) {
+                    Swal.showLoading();
                     await callEngine('reset_room');
                     fetchGameState(); // Lấy dữ liệu ngay lập tức
                 }
@@ -854,7 +859,9 @@ async function promptWhiteHatGuess() {
     });
 
     if (guess) {
+        Swal.showLoading();
         const res = await callEngine('submit_whitehat_guess', { guessWord: guess });
+        Swal.close();
         
         if (res.status === 'success') {
             await Swal.fire('Kết quả', res.message, 'info');
