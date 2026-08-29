@@ -730,7 +730,7 @@ async function fetchGameState() {
 
             if (winner === 'villager') {
                 title = 'DÂN THẮNG!';
-                htmlContent = 'Toàn bộ Gián điệp đã bị tiêu diệt!' + keywordsInfo;
+                htmlContent = 'Toàn bộ Gián điệp và Mũ trắng đã bị tiêu diệt!' + keywordsInfo;
             } else if (winner === 'spy') {
                 title = 'GIÁN ĐIỆP THẮNG!';
                 htmlContent = 'Số lượng Gián điệp đã lớn hơn hoặc bằng Dân thường!' + keywordsInfo;
