@@ -721,25 +721,29 @@ async function fetchGameState() {
             isShowingWinner = true;
             
             let title = '';
-            let text = '';
+            let htmlContent = '';
             let icon = 'success';
+
+            let villagerWord = players.find(p => p.role === 'Dân')?.keyword || '???';
+            let spyWord = players.find(p => p.role === 'Gián điệp')?.keyword || '???';
+            let keywordsInfo = `<br><br><div style="font-size: 1.1em;"><b>Từ khóa của Dân:</b> <span style="color: #66fcf1;">${villagerWord}</span><br><b>Từ khóa của Gián điệp:</b> <span style="color: #ff4c4c;">${spyWord}</span></div>`;
 
             if (winner === 'villager') {
                 title = 'DÂN THẮNG!';
-                text = 'Toàn bộ Gián điệp đã bị tiêu diệt!';
+                htmlContent = 'Toàn bộ Gián điệp đã bị tiêu diệt!' + keywordsInfo;
             } else if (winner === 'spy') {
                 title = 'GIÁN ĐIỆP THẮNG!';
-                text = 'Gián điệp đã vượt mặt Dân!';
+                htmlContent = 'Số lượng Gián điệp đã lớn hơn hoặc bằng Dân thường!' + keywordsInfo;
                 icon = 'error';
             } else if (winner === 'white_hat') {
                 title = 'MŨ TRẮNG THẮNG!';
-                text = 'Mũ trắng đã cướp màn thành công!';
+                htmlContent = 'Mũ trắng đã đoán trúng từ hoặc sống sót cuối cùng!' + keywordsInfo;
                 icon = 'info';
             }
 
             Swal.fire({
                 title: title,
-                text: text,
+                html: htmlContent,
                 icon: icon,
                 confirmButtonColor: '#66fcf1',
                 confirmButtonText: 'Đóng',
