@@ -80,7 +80,7 @@ const CustomUI = {
         this.isModalShowing = true;
         
         this.modalTitle.innerText = options.title || '';
-        this.modalBody.innerHTML = options.text || '';
+        this.modalBody.innerHTML = options.html || options.text || '';
         
         let iconClass = 'fa-solid fa-circle-info';
         let iconColor = 'var(--accent)';
