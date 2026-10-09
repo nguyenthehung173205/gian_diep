@@ -752,7 +752,7 @@ async function fetchGameState() {
                 icon = 'error';
             } else if (winner === 'white_hat') {
                 title = 'MŨ TRẮNG THẮNG!';
-                htmlContent = 'Mũ trắng đã đoán trúng từ hoặc sống sót cuối cùng!' + keywordsInfo;
+                htmlContent = 'Mũ trắng đã đoán trúng từ hoặc áp đảo số lượng!' + keywordsInfo;
                 icon = 'info';
             }
 
