@@ -564,16 +564,24 @@ btnLeaveRoomPlaying.addEventListener('click', handleLeaveRoom);
 // =========================================================================
 // WEBSOCKETS LOGIC (SUPABASE REALTIME)
 // =========================================================================
+let debounceFetchTimer = null;
+function debouncedFetchGameState(delay = 300) {
+    if (debounceFetchTimer) clearTimeout(debounceFetchTimer);
+    debounceFetchTimer = setTimeout(() => {
+        fetchGameState();
+    }, delay);
+}
+
 function setupRealtime() {
     if (realtimeChannel) {
         supabaseClient.removeChannel(realtimeChannel);
     }
     realtimeChannel = supabaseClient.channel('room_updates')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_rooms', filter: `room_code=eq.${currentRoomCode}` }, () => {
-            fetchGameState();
+            debouncedFetchGameState(300);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'undercover_players', filter: `room_code=eq.${currentRoomCode}` }, () => {
-            fetchGameState();
+            debouncedFetchGameState(300);
         })
         .subscribe((status) => {
             if (status === 'SUBSCRIBED') {
