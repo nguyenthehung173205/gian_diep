@@ -367,6 +367,7 @@ btnJoinRoom.addEventListener('click', async () => {
         setupRealtime();
         fetchGameState();
     } else {
+        currentRoomCode = null;
         Swal.fire('Lỗi', res.message, 'error');
     }
 });
@@ -591,6 +592,8 @@ function setupRealtime() {
 }
 
 async function fetchGameState() {
+    if (!currentRoomCode || !currentPlayerId) return; // Chưa chính thức vào phòng thì không đồng bộ/chuyển màn hình
+    if (displayRoomCode && currentRoomCode) displayRoomCode.innerText = currentRoomCode;
     const res = await callEngine('get_state');
     
     // Tự động đóng Modal Loading (CustomUI sẽ tự biết bỏ qua nếu modal đang hiện không phải là Loading)
@@ -960,7 +963,7 @@ document.addEventListener('visibilitychange', () => {
     // Khi người chơi bật sáng màn hình hoặc quay lại tab
     if (document.visibilityState === 'visible') {
         // Nếu đang ở trong phòng, lập tức cập nhật dữ liệu để tránh lỡ nhịp (Stale state)
-        if (currentRoomCode) {
+        if (currentRoomCode && currentPlayerId) {
             fetchGameState();
         }
     }
@@ -968,7 +971,7 @@ document.addEventListener('visibilitychange', () => {
 
 // Sự kiện khi trình duyệt lấy lại được kết nối mạng (ra khỏi thang máy, hầm...)
 window.addEventListener('online', () => {
-    if (currentRoomCode) {
+    if (currentRoomCode && currentPlayerId) {
         fetchGameState();
     }
 });
